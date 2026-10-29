@@ -1,0 +1,12 @@
+# Local credentials and generated configuration
+.env
+.env.*
+!.env.example
+**/connectors-config/config.yml
+*.pem
+*.key
+
+# Local editor and operating-system files
+.DS_Store
+*.swp
+*~

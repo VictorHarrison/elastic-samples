@@ -1,0 +1,10 @@
+# Copy to config.yml. Keep that local copy out of Git.
+# Use the Elasticsearch endpoint, not the Kibana URL or Cloud ID.
+elasticsearch.host: "https://REPLACE_WITH_ELASTICSEARCH_ENDPOINT"
+# Paste the API key response's encoded value, not its id or api_key field.
+elasticsearch.api_key: "REPLACE_WITH_ENCODED_API_KEY"
+
+connectors:
+  - connector_id: "mongodb-outdoor-demo"
+    service_type: "mongodb"
+# The connector uses elasticsearch.api_key when no per-connector key is set.

@@ -1,0 +1,47 @@
+name: mongodb-search-lab
+
+services:
+  mongodb:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: lab_admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD:?Set MONGO_ADMIN_PASSWORD in .env}
+      MONGO_SYNC_PASSWORD: ${MONGO_SYNC_PASSWORD:?Set MONGO_SYNC_PASSWORD in .env}
+    volumes:
+      - mongodb-data:/data/db
+      - ./mongodb/01-init.js:/docker-entrypoint-initdb.d/01-init.js:ro
+      - ./data:/lab/data:ro
+      - ./scripts:/lab/scripts:ro
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "const a = db.getSiblingDB('admin'); a.auth(process.env.MONGO_INITDB_ROOT_USERNAME, process.env.MONGO_INITDB_ROOT_PASSWORD); if (a.runCommand({ping:1}).ok !== 1) quit(1);"
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    networks:
+      - lab
+
+  connector:
+    image: docker.elastic.co/integrations/elastic-connectors:9.5.5
+    restart: unless-stopped
+    profiles: [sync]
+    command: ["/app/bin/elastic-ingest", "-c", "/config/config.yml"]
+    volumes:
+      - ./connectors-config:/config:ro
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - lab
+
+volumes:
+  mongodb-data:
+
+networks:
+  lab:

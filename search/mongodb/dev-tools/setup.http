@@ -1,0 +1,61 @@
+# Run these in Kibana Dev Tools > Console, ONE request at a time.
+# Use a new lab project or make sure these names are not already in use.
+# Your signed-in user must be able to create indices, connectors, and API keys.
+
+# 1. Create the index BEFORE the first sync so field types are predictable.
+PUT search-outdoor-products
+{
+  "mappings": {
+    "properties": {
+      "name": { "type": "text" },
+      "description": { "type": "text" },
+      "category": { "type": "keyword" },
+      "price": { "type": "double" },
+      "currency": { "type": "keyword" },
+      "in_stock": { "type": "boolean" }
+    }
+  }
+}
+
+# 2. Create a self-managed MongoDB connector with a predictable ID.
+PUT _connector/mongodb-outdoor-demo
+{
+  "name": "Outdoor catalog from MongoDB",
+  "description": "Learning sample: MongoDB to Elasticsearch Serverless",
+  "index_name": "search-outdoor-products",
+  "service_type": "mongodb",
+  "is_native": false
+}
+
+# 3. Create a lab key. Save its id AND encoded values privately.
+# It expires in 14 days. Permissions follow Elastic's MongoDB example,
+# scoped to this sample's content index and connector system indices.
+# Connector-system permissions span connectors: use a dedicated lab project.
+POST _security/api_key
+{
+  "name": "mongodb-outdoor-demo",
+  "expiration": "14d",
+  "role_descriptors": {
+    "mongodb-outdoor-demo": {
+      "cluster": ["monitor", "manage_connector"],
+      "indices": [
+        {
+          "names": [
+            "search-outdoor-products",
+            ".search-acl-filter-search-outdoor-products",
+            ".elastic-connectors*"
+          ],
+          "privileges": ["all"],
+          "allow_restricted_indices": false
+        }
+      ]
+    }
+  }
+}
+
+# 4. Replace this placeholder with the id from step 3, then run this request.
+# Keep your edited copy out of Git. The encoded value goes in config.yml.
+PUT _connector/mongodb-outdoor-demo/_api_key_id
+{
+  "api_key_id": "REPLACE_WITH_API_KEY_ID"
+}

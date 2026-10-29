@@ -1,0 +1,60 @@
+# Paste into Kibana Dev Tools > Console. Run one request at a time.
+# These examples assume the first full sync has completed.
+
+# 1. Did everything arrive? Expected count: 20.
+GET search-outdoor-products/_count
+
+# 2. Search by words. Name matches receive extra weight.
+# Expected: two hits. RainReady ranks first (119.99 before the update).
+# Breeze also matches: its description contains "jacket" and "not waterproof".
+# Keyword matching does not interpret negation; use structured attributes for
+# requirements such as waterproofing in a real product catalog.
+GET search-outdoor-products/_search
+{
+  "_source": ["name", "description", "category", "price", "in_stock"],
+  "query": {
+    "multi_match": {
+      "query": "waterproof jacket",
+      "fields": ["name^2", "description"],
+      "operator": "and"
+    }
+  }
+}
+
+# 3. Jackets in stock for under 100 USD.
+# Initially: p003 and p004. After updating p001 and syncing: three products.
+GET search-outdoor-products/_search
+{
+  "_source": ["name", "category", "price", "in_stock"],
+  "query": {
+    "bool": {
+      "filter": [
+        { "term": { "category": "jackets" } },
+        { "term": { "in_stock": true } },
+        { "range": { "price": { "lt": 100 } } }
+      ]
+    }
+  },
+  "sort": [{ "price": "asc" }]
+}
+
+# 4. Bonus: count products by category and calculate their average price.
+# Expected: five categories, each with four products.
+GET search-outdoor-products/_search
+{
+  "size": 0,
+  "aggs": {
+    "categories": {
+      "terms": { "field": "category", "size": 10 },
+      "aggs": { "average_price": { "avg": { "field": "price" } } }
+    }
+  }
+}
+
+# 5. Verify the price change after a second full sync.
+# Expected: p001 with price 89.99. The total document count stays 20.
+GET search-outdoor-products/_search
+{
+  "_source": ["name", "price", "in_stock"],
+  "query": { "ids": { "values": ["p001"] } }
+}
